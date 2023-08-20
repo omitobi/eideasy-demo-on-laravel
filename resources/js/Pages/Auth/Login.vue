@@ -27,6 +27,8 @@ const submit = () => {
         onFinish: () => form.reset('password'),
     });
 };
+
+const identityLogin = () => window.location.href = route('identity.login');
 </script>
 
 <template>
@@ -83,6 +85,19 @@ const submit = () => {
 
                 <PrimaryButton class="ml-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
                     Log in
+                </PrimaryButton>
+            </div>
+            <hr class="m-3">
+
+            <div class="flex items-center justify-end mt-4">
+                <PrimaryButton
+                    type="button"
+                    class="ml-4"
+                    :class="{ 'opacity-25': form.processing }"
+                    :disabled="form.processing"
+                    @click.prevent="identityLogin"
+                >
+                    Identity Login
                 </PrimaryButton>
             </div>
         </form>

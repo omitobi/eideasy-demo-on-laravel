@@ -24,6 +24,14 @@ Route::get('/', function () {
     ]);
 });
 
+Route::get('identity/login', function () {
+    $clientId = config('identity-auth.eideasy_client_id');
+
+    return redirect()->away(
+        "https://test.eideasy.com/oauth/authorize?client_id=$clientId&redirect_uri=" . url('/') .'&response_type=code'
+    );
+})->name('identity.login');
+
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
