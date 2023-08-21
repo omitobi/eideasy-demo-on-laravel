@@ -1,8 +1,17 @@
 <?php
 
+use App\Actions\Fortify\CreateNewUser;
+use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Laravel\Fortify\Contracts\RegisterResponse;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,13 +33,67 @@ Route::get('/', function () {
     ]);
 });
 
+$limiter = config('fortify.limiters.login');
+
 Route::get('identity/login', function () {
+    $baseUrl = config('identity-auth.eideasy_base_url');
     $clientId = config('identity-auth.eideasy_client_id');
 
+    // Generate a URL
     return redirect()->away(
-        "https://test.eideasy.com/oauth/authorize?client_id=$clientId&redirect_uri=" . url('/') .'&response_type=code'
+        "$baseUrl/oauth/authorize?client_id=$clientId&redirect_uri=" . \route('identity.return') .'&response_type=code'
     );
-})->name('identity.login');
+})
+    ->name('identity.login')
+    ->middleware(array_filter([
+        'guest:'.config('fortify.guard'),
+        $limiter ? 'throttle:'.$limiter : null,
+    ]));
+
+Route::get('identity/return', function (Request $request) {
+    $baseUrl = config('identity-auth.eideasy_base_url');
+    $clientId = config('identity-auth.eideasy_client_id');
+    $secret = config('identity-auth.eideasy_secret');
+
+    $code = $request->get('code');
+
+    // Get access token
+
+    $response = Http::asForm()
+        ->post("$baseUrl/oauth/access_token", [
+            'client_id' => $clientId,
+            'client_secret' => $secret,
+            'redirect_uri' => \route('identity.return'),
+            'code' => $code,
+            'grant_type' => 'authorization_code',
+        ]
+    );
+
+    $accessToken  = $response->json('access_token');
+
+    // Get user details with access token.
+    $dataResponse = Http::withToken($accessToken)
+        ->get("$baseUrl/api/v2/user_data")
+        ->json();
+
+    $identifier = hash('sha256', $dataResponse['idcode']);
+
+    if (!$user = User::where('identifier', $identifier)->first()) {
+        $createNewUser = new CreateNewUser();
+        $user = $createNewUser->createUser([
+            'email' => Str::random(16) . '@example.com',
+            'password' => Str::random(54),
+            'name' => Arr::get($dataResponse, 'firstname') . ' ' . Arr::get($dataResponse, 'lastname'),
+            'identifier' => $identifier,
+        ]);
+
+        event(new Registered($user));
+    }
+
+    Auth::guard()->login($user);
+
+    return app(RegisterResponse::class);
+})->name('identity.return');
 
 Route::middleware([
     'auth:sanctum',
