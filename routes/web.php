@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Laravel\Fortify\Contracts\RegisterResponse;
+use Transprime\Url\Url;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,10 +40,16 @@ Route::get('identity/login', function () {
     $baseUrl = config('identity-auth.eideasy_base_url');
     $clientId = config('identity-auth.eideasy_client_id');
 
+    $url = Url::make(
+        fullDomain: $baseUrl,
+        path: '/oauth/authorize',
+    )
+        ->addToQuery('client_id', $clientId)
+        ->addToQuery('redirect_uri', \route('identity.return'))
+        ->addToQuery('response_type', 'code');
+
     // Generate a URL
-    return redirect()->away(
-        "$baseUrl/oauth/authorize?client_id=$clientId&redirect_uri=" . \route('identity.return') .'&response_type=code'
-    );
+    return redirect()->away($url->toString());
 })
     ->name('identity.login')
     ->middleware(array_filter([
@@ -60,7 +67,7 @@ Route::get('identity/return', function (Request $request) {
     // Get access token
 
     $response = Http::asForm()
-        ->post("$baseUrl/oauth/access_token", [
+        ->post(new Url(fullDomain: $baseUrl, path: '/oauth/access_token'), [
             'client_id' => $clientId,
             'client_secret' => $secret,
             'redirect_uri' => \route('identity.return'),
@@ -73,7 +80,7 @@ Route::get('identity/return', function (Request $request) {
 
     // Get user details with access token.
     $dataResponse = Http::withToken($accessToken)
-        ->get("$baseUrl/api/v2/user_data")
+        ->get(new Url(fullDomain: $baseUrl, path: '/api/v2/user_data'))
         ->json();
 
     $identifier = hash('sha256', $dataResponse['idcode']);
