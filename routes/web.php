@@ -40,16 +40,16 @@ Route::get('identity/login', function () {
     $baseUrl = config('identity-auth.eideasy_base_url');
     $clientId = config('identity-auth.eideasy_client_id');
 
-    $url = Url::make(
+    $url = new Url(
         fullDomain: $baseUrl,
         path: '/oauth/authorize',
-    )
-        ->addToQuery('client_id', $clientId)
-        ->addToQuery('redirect_uri', \route('identity.return'))
-        ->addToQuery('response_type', 'code');
+        client_id: $clientId,
+        redirect_uri: \route('identity.return'),
+        response_type: 'code'
+    );
 
     // Generate a URL
-    return redirect()->away($url->toString());
+    return redirect()->away($url);
 })
     ->name('identity.login')
     ->middleware(array_filter([

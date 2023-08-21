@@ -6083,16 +6083,16 @@
         },
         {
             "name": "transprime-research/php-url",
-            "version": "1.0.0",
+            "version": "1.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/transprime-research/php-url.git",
-                "reference": "027854110385127d9f770e9a53b31f4ede1b2a35"
+                "reference": "d32baa862df5036afa8bc10a1ea9a3cb198aae33"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/transprime-research/php-url/zipball/027854110385127d9f770e9a53b31f4ede1b2a35",
-                "reference": "027854110385127d9f770e9a53b31f4ede1b2a35",
+                "url": "https://api.github.com/repos/transprime-research/php-url/zipball/d32baa862df5036afa8bc10a1ea9a3cb198aae33",
+                "reference": "d32baa862df5036afa8bc10a1ea9a3cb198aae33",
                 "shasum": ""
             },
             "require": {
@@ -6132,7 +6132,7 @@
                 "issues": "https://github.com/transprime-research/php-url/issues",
                 "source": "https://github.com/transprime-research/php-url/issues"
             },
-            "time": "2023-08-21T21:01:35+00:00"
+            "time": "2023-08-21T21:42:53+00:00"
         },
         {
             "name": "vlucas/phpdotenv",
