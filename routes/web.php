@@ -2,6 +2,7 @@
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Models\User;
+use App\Services\EidEasy\EidEasyOauth;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
@@ -36,20 +37,16 @@ Route::get('/', function () {
 
 $limiter = config('fortify.limiters.login');
 
-Route::get('identity/login', function () {
-    $baseUrl = config('identity-auth.eideasy_base_url');
-    $clientId = config('identity-auth.eideasy_client_id');
+Route::get('identity/login', function (EidEasyOauth $easyOauth) {
+    session(['_state' => $easyOauth->getState()]);
 
-    $url = new Url(
-        fullDomain: $baseUrl,
-        path: '/oauth/authorize',
-        client_id: $clientId,
-        redirect_uri: \route('identity.return'),
-        response_type: 'code'
-    );
+    $authorizationUrl = $easyOauth->getAuthorizationUrl([
+        // Optional params
+        'lang' => 'en',
+    ]);
 
     // Generate a URL
-    return redirect()->away($url);
+    return redirect()->away($authorizationUrl);
 })
     ->name('identity.login')
     ->middleware(array_filter([
@@ -57,31 +54,20 @@ Route::get('identity/login', function () {
         $limiter ? 'throttle:'.$limiter : null,
     ]));
 
-Route::get('identity/return', function (Request $request) {
-    $baseUrl = config('identity-auth.eideasy_base_url');
-    $clientId = config('identity-auth.eideasy_client_id');
-    $secret = config('identity-auth.eideasy_secret');
+Route::get('identity/return', function (Request $request, EidEasyOauth $easyOauth) {
 
-    $code = $request->get('code');
+    $easyOauth->validateState($request);
 
-    // Get access token
+    // Try to get an access token using the authorization code grant.
+    $accessToken = $easyOauth->getAccessToken('authorization_code', [
+        'code' => $_GET['code'],
+    ]);
 
-    $response = Http::asForm()
-        ->post(new Url(fullDomain: $baseUrl, path: '/oauth/access_token'), [
-            'client_id' => $clientId,
-            'client_secret' => $secret,
-            'redirect_uri' => \route('identity.return'),
-            'code' => $code,
-            'grant_type' => 'authorization_code',
-        ]
-    );
+    // Using the access token, we may look up details about the
+    // resource owner.
+    $resourceOwner = $easyOauth->getResourceOwner($accessToken);
 
-    $accessToken  = $response->json('access_token');
-
-    // Get user details with access token.
-    $dataResponse = Http::withToken($accessToken)
-        ->get(new Url(fullDomain: $baseUrl, path: '/api/v2/user_data'))
-        ->json();
+    $dataResponse = $resourceOwner->toArray();
 
     $identifier = hash('sha256', $dataResponse['idcode']);
 
