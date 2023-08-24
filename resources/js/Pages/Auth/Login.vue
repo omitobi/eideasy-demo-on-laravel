@@ -7,6 +7,7 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
+import IdentityLoginButton from "@/Components/IdentityLoginButton.vue";
 
 defineProps({
     canResetPassword: Boolean,
@@ -28,7 +29,6 @@ const submit = () => {
     });
 };
 
-const identityLogin = () => window.location.href = route('identity.login');
 </script>
 
 <template>
@@ -87,19 +87,7 @@ const identityLogin = () => window.location.href = route('identity.login');
                     Log in
                 </PrimaryButton>
             </div>
-            <hr class="m-3">
-
-            <div class="flex items-center justify-end mt-4">
-                <PrimaryButton
-                    type="button"
-                    class="ml-4"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                    @click.prevent="identityLogin"
-                >
-                    Identity Login
-                </PrimaryButton>
-            </div>
+            <IdentityLoginButton :form="form" />
         </form>
     </AuthenticationCard>
 </template>
